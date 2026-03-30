@@ -5,9 +5,7 @@ from dash import Dash, dcc, html, Input, Output
 
 
 # --- 1. KONFIGURACJA MATEMATYCZNA ---
-
 def get_tetrahedron_vertices():
-    # Wierzchołki A, B, C, D w przestrzeni 3D
     return np.array([
         [0, 0, 0],  # A (w1)
         [1, 0, 0],  # B (w2)
@@ -17,13 +15,10 @@ def get_tetrahedron_vertices():
 
 
 def my_function(w):
-    """Zmień tę funkcję na dowolną inną."""
-    # Przykład: Entropia Shannona
-    return -sum(p * math.log2(p) for p in w if p > 1e-9)
+    return -sum(p * math.log2(p) for p in w if p > 1e-9)  # Entropia
 
 
-# Generowanie chmury punktów
-RESOLUTION = 35
+RESOLUTION = 40
 VERTICES = get_tetrahedron_vertices()
 points, values, weights = [], [], []
 
@@ -50,65 +45,66 @@ weights = np.array(weights)
 
 app = Dash(__name__)
 
+# Stylizacja dla suwaków
+slider_style = {'marginBottom': '25px', 'padding': '0 10px'}
+
 app.layout = html.Div([
-    html.H2("Eksplorator Przekrojów Simpleksu 4D", style={'textAlign': 'center', 'fontFamily': 'sans-serif'}),
+    html.H2("Precyzyjne Cięcie Simpleksu 4D", style={'textAlign': 'center', 'fontFamily': 'sans-serif'}),
 
     html.Div([
-        # Panel boczny z suwakami
+        # Panel boczny
         html.Div([
             html.B("Filtr wartości funkcji:"),
             dcc.RangeSlider(
-                id='val-slider',
-                min=float(min(values)), max=float(max(values)),
+                id='val-slider', min=float(min(values)), max=float(max(values)),
                 value=[min(values), max(values)],
                 tooltip={"placement": "bottom", "always_visible": True}
             ),
             html.Hr(),
-            html.B("Minimalne udziały zmiennych (0.0 - 1.0):"),
+            html.B("Zakresy udziałów zmiennych (min - max):"),
 
-            html.Div([html.Label("Zmienna A (Wierzchołek [0,0,0]):"),
-                      dcc.Slider(id='w1-s', min=0, max=1, step=0.05, value=0)], style={'marginBottom': '10px'}),
+            html.Div([html.Label("Zmienna A (Baza Lewa):"),
+                      dcc.RangeSlider(id='w1-r', min=0, max=1, step=0.05, value=[0, 1])], style=slider_style),
 
-            html.Div([html.Label("Zmienna B (Wierzchołek [1,0,0]):"),
-                      dcc.Slider(id='w2-s', min=0, max=1, step=0.05, value=0)], style={'marginBottom': '10px'}),
+            html.Div([html.Label("Zmienna B (Baza Prawa):"),
+                      dcc.RangeSlider(id='w2-r', min=0, max=1, step=0.05, value=[0, 1])], style=slider_style),
 
-            html.Div([html.Label("Zmienna C (Podstawa tył):"),
-                      dcc.Slider(id='w3-s', min=0, max=1, step=0.05, value=0)], style={'marginBottom': '10px'}),
+            html.Div([html.Label("Zmienna C (Baza Tył):"),
+                      dcc.RangeSlider(id='w3-r', min=0, max=1, step=0.05, value=[0, 1])], style=slider_style),
 
             html.Div([html.Label("Zmienna D (Szczyt):"),
-                      dcc.Slider(id='w4-s', min=0, max=1, step=0.05, value=0)], style={'marginBottom': '10px'}),
-
-            html.P(
-                "Uwaga: Ponieważ A+B+C+D=1, ustawienie zbyt wysokich filtrów na wielu suwakach spowoduje brak punktów.",
-                style={'fontSize': '12px', 'color': 'gray', 'marginTop': '20px'})
+                      dcc.RangeSlider(id='w4-r', min=0, max=1, step=0.05, value=[0, 1])], style=slider_style),
 
         ], style={'width': '25%', 'display': 'inline-block', 'verticalAlign': 'top', 'padding': '20px',
-                  'backgroundColor': '#f9f9f9'}),
+                  'backgroundColor': '#f4f4f4', 'borderRadius': '10px'}),
 
         # Panel wykresu
         html.Div([
             dcc.Graph(id='main-graph', style={'height': '85vh'})
         ], style={'width': '70%', 'display': 'inline-block'})
-    ], style={'display': 'flex'})
+    ], style={'display': 'flex', 'justifyContent': 'space-around', 'padding': '10px'})
 ])
 
 
-# --- 3. REAKTYWNOŚĆ ---
+# --- 3. REAKTYWNOŚĆ (CALLBACK) ---
 
 @app.callback(
     Output('main-graph', 'figure'),
     [Input('val-slider', 'value'),
-     Input('w1-s', 'value'), Input('w2-s', 'value'),
-     Input('w3-s', 'value'), Input('w4-s', 'value')]
+     Input('w1-r', 'value'), Input('w2-r', 'value'),
+     Input('w3-r', 'value'), Input('w4-r', 'value')]
 )
-def update_view(v_range, m1, m2, m3, m4):
-    # Logika filtrowania (Maska)
+def update_view(v_range, r1, r2, r3, r4):
+    # Logika filtrowania z użyciem zakresów [min, max]
     mask = (values >= v_range[0]) & (values <= v_range[1]) & \
-           (weights[:, 0] >= m1) & (weights[:, 1] >= m2) & \
-           (weights[:, 2] >= m3) & (weights[:, 3] >= m4)
+           (weights[:, 0] >= r1[0]) & (weights[:, 0] <= r1[1]) & \
+           (weights[:, 1] >= r2[0]) & (weights[:, 1] <= r2[1]) & \
+           (weights[:, 2] >= r3[0]) & (weights[:, 2] <= r3[1]) & \
+           (weights[:, 3] >= r4[0]) & (weights[:, 3] <= r4[1])
 
     f_p = points[mask]
     f_v = values[mask]
+    f_w = weights[mask]
 
     fig = go.Figure()
 
@@ -117,25 +113,30 @@ def update_view(v_range, m1, m2, m3, m4):
         x=f_p[:, 0], y=f_p[:, 1], z=f_p[:, 2],
         mode='markers',
         marker=dict(
-            size=4, color=f_v, colorscale='Viridis', opacity=0.7,
+            size=4, color=f_v, colorscale='Plasma', opacity=0.7,
             colorbar=dict(title="Wartość", thickness=20)
         ),
-        hovertemplate="A:%{customdata[0]:.2f}<br>B:%{customdata[1]:.2f}<br>C:%{customdata[2]:.2f}<br>D:%{customdata[3]:.2f}<br>Wynik: %{marker.color:.4f}<extra></extra>",
-        customdata=weights[mask]
+        customdata=f_w,
+        hovertemplate="A:%{customdata[0]:.2f} B:%{customdata[1]:.2f}<br>" +
+                      "C:%{customdata[2]:.2f} D:%{customdata[3]:.2f}<br>" +
+                      "<b>Wynik: %{marker.color:.4f}</b><extra></extra>"
     ))
 
-    # Szkielet czworościanu
+    # Szkielet czworościanu (obramowanie)
     edges = [(0, 1), (1, 2), (2, 0), (0, 3), (1, 3), (2, 3)]
     for s, e in edges:
         fig.add_trace(go.Scatter3d(
             x=[VERTICES[s][0], VERTICES[e][0]], y=[VERTICES[s][1], VERTICES[e][1]], z=[VERTICES[s][2], VERTICES[e][2]],
-            mode='lines', line=dict(color='black', width=1), showlegend=False, hoverinfo='skip'
+            mode='lines', line=dict(color='rgba(0,0,0,0.3)', width=2), showlegend=False, hoverinfo='skip'
         ))
 
     fig.update_layout(
-        scene=dict(xaxis_visible=False, yaxis_visible=False, zaxis_visible=False),
-        margin=dict(l=0, r=0, b=0, t=0),
-        title=f"Widocznych punktów: {len(f_p)}"
+        scene=dict(
+            xaxis_visible=False, yaxis_visible=False, zaxis_visible=False,
+            camera=dict(eye=dict(x=1.8, y=1.8, z=1.8))
+        ),
+        margin=dict(l=0, r=0, b=0, t=30),
+        title=f"Punktów w widoku: {len(f_p)}"
     )
 
     return fig
