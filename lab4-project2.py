@@ -9,12 +9,11 @@ import os
 
 
 def calculate_frobenius_norm(matrix_a, matrix_b):
-    """Oblicza normę Frobeniusa różnicy macierzy."""
     return np.linalg.norm(matrix_a - matrix_b, ord='fro')
 
 
 def stress_function(flat_coords, target_dist_mtx, n_points, target_dims):
-    """Funkcja celu do minimalizacji."""
+    """Funkcja celu"""
     coords = flat_coords.reshape((n_points, target_dims))
     current_dist_mtx = squareform(pdist(coords))
     diff = (current_dist_mtx - target_dist_mtx) ** 2
@@ -22,7 +21,6 @@ def stress_function(flat_coords, target_dist_mtx, n_points, target_dims):
 
 
 def load_data(file_path):
-    """Wczytuje dane w formacie X lub D zgodnie ze specyfikacją."""
     if not os.path.exists(file_path):
         print(f"Błąd: Plik '{file_path}' nie istnieje.")
         sys.exit(1)
@@ -61,7 +59,6 @@ def load_data(file_path):
 
 
 def run_optimization(dist_df, target_dims=2):
-    """Przeprowadza optymalizację położenia punktów."""
     n_points = len(dist_df)
     target_dist_mtx = dist_df.values
 
@@ -86,7 +83,6 @@ def run_optimization(dist_df, target_dims=2):
 
 
 def visualize(coords, labels, f_norm):
-    """Tworzy wizualizację 2D."""
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=coords[:, 0], y=coords[:, 1],
@@ -128,22 +124,16 @@ def main():
 
     args = parser.parse_args()
 
-    # 1. Wczytanie i przygotowanie macierzy odległości
     dist_df = load_data(args.input_file)
-
-    # 2. Optymalizacja
-    print("Trwa optymalizacja położenia punktów...")
+    print("optymalizacja...")
     coords, labels, quality_score = run_optimization(dist_df, args.dims)
-
-    # 3. Wyniki w konsoli
     print("\n--- WYNIKI ---")
     print(f"Jakość działania (Norma Frobeniusa): {quality_score:.6f}")
-
     print("\nZoptymalizowane współrzędne:")
     output_df = pd.DataFrame(coords, index=labels, columns=[f"Oś_{i + 1}" for i in range(args.dims)])
     print(output_df)
 
-    # 4. Wizualizacja (tylko dla 2D)
+    # 4. Wizualizacja (2D)
     if args.dims == 2:
         visualize(coords, labels, quality_score)
     else:

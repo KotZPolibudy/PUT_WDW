@@ -1,0 +1,4 @@
+D one two three
+one 0.0 4.0 3.0
+two 4.0 0.0 5.0
+three 3.0 5.0 0.0
