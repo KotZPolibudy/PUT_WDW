@@ -20,7 +20,8 @@ PRESETS = {
     'Gini': '1 - (A**2 + B**2 + C**2 + D**2)',
     'Odległość od środka': 'np.linalg.norm(np.dot([A,B,C,D], VERTICES) - CENTER)',
     'D': 'D',
-    'A/D': 'A / D'
+    'A/D': 'A / D',
+    'A>0.5': 'A>0.5'
 }
 
 
